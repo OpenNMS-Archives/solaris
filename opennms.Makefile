@@ -57,9 +57,7 @@ NAME        = OpenNMS
 DESC        = Enterprise-grade open source network management system
 ARCH        = all
 VERSIONSH1  = echo ${SRCVERSION} | sed -e 's/^[^-]*-//' -e 's/^.*\.v//'
-#VERSIONSH2  = uname -s
-#VERSIONSH3  = uname -r
-VERSION     = ${VERSIONSH1:sh} # (${VERSIONSH2:sh}-${VERSIONSH3:sh})
+VERSION     = ${VERSIONSH1:sh}
 CATEGORY    = application
 MAXINST     = 1000
 VENDOR      = The OpenNMS Group
@@ -100,6 +98,7 @@ pkg: ${SRCVERSION}.pkg
 
 ${SRCVERSION}.pkg:  ${DESTDIR}/prototype
 	( cd ${DESTDIR} && ${PKGMK} -d ${SPOOLDIR} -or . )
+## This doesn't seem to work reliably, anymore. :-(
 #	( cd ${SPOOLDIR}/${PKGNAME}/reloc && find . -depth -print | \
 #		grep -v '^\.$$' | cpio -odm | compress -f > ../reloc.cpio.Z )
 #	rm -rf ${SPOOLDIR}/${PKGNAME}/reloc
@@ -168,97 +167,29 @@ ${DESTDIR}/install/pkginfo: ${DESTDIR}/install
 	@echo "BASEDIR=\"/\"" >> $@
 	@echo "CLASSES=\"${CLASSES}\"" >> $@
 
-# XXX no java is listed since there are multiple possible package names
-${DESTDIR}/install/depend: ${DESTDIR}/install
-	rm -f $@
-	@echo "P	NMSjicmp	OpenNMS jicmp plugin" >> $@
-#	@echo "P	SUNWpostgr-server	The programs needed to create and run a PostgreSQL 8.1.5 server" >> $@
-#	@echo "P	SUNWpostgr-pl	The PL procedural languages for PostgreSQL 8.1.5" >> $@
+${DESTDIR}/install/depend: ${DESTDIR}/install install/depend
+	cp install/depend $@
 
-${DESTDIR}/install/preinstall: ${DESTDIR}/install
-	rm -f $@
-	@echo "#!/bin/sh -" >> $@
-	@echo "" >> $@
-	@echo "if /usr/bin/getent group opennms > /dev/null; then" >> $@
-	@echo "	echo \"opennms group already exists, not adding\"" >> $@
-	@echo "else" >> $@
-	@echo "	echo \"opennms group does not exist, adding\"" >> $@
-	@echo "	/usr/sbin/groupadd opennms" >> $@
-	@echo "	if [ \$$? -ne 0 ]; then" >> $@
-	@echo "		echo \"Failed to add opennms group, exiting\" >&2" >> $@
-	@echo "		exit 1" >> $@
-	@echo "	fi" >> $@
-	@echo "fi" >> $@
-	@echo "" >> $@
-	@echo "if /usr/bin/getent passwd opennms > /dev/null; then" >> $@
-	@echo "	echo \"opennms user already exists, not adding\"" >> $@
-	@echo "else" >> $@
-	@echo "	echo \"opennms user does not exist, adding\"" >> $@
-	@echo "	/usr/sbin/useradd -g opennms -d /opt/opennms -c \"OpenNMS Daemon\" opennms" >> $@
-	@echo "	if [ \$$? -ne 0 ]; then" >> $@
-	@echo "		echo \"Failed to add opennms user, exiting\" >&2" >> $@
-	@echo "		exit 1" >> $@
-	@echo "	fi" >> $@
-	@echo "fi" >> $@
+${DESTDIR}/install/copyright: ${DESTDIR}/install install/copyright
+	cp install/copyright $@
 
-${DESTDIR}/install/checkinstall: ${DESTDIR}/install
-	rm -f $@
-	@echo "#!/bin/sh -" >> $@
-	@echo "" >> $@
-	@echo "if [ x"\$$PKG_INSTALL_ROOT" != x"" ]; then" >> $@
-	@echo "	echo \"Error: this package must not be installed with an alternate root path.\"" >> $@
-	@echo "	exit 1" >> $@
-	@echo "fi" >> $@
-	@echo "" >> $@
+${DESTDIR}/install/checkinstall: ${DESTDIR}/install install/checkinstall
+	cp install/checkinstall $@
 
-${DESTDIR}/install/postinstall: ${DESTDIR}/install
-	rm -f $@
-	@echo "#!/bin/sh -" >> $@
-	@echo "" >> $@
-	@echo "rm -f ${BASEDIR}/etc/configured" >> $@
-	@echo "" >> $@
-	@echo "for distfile in ${BASEDIR}/etc/.dist/*; do" >> $@
-	@echo "	basename=\`basename \$$distfile\`" >> $@
-	@echo "	if [ -f ${BASEDIR}/etc/\$$basename ]; then" >> $@
-	@echo "		cp \$$distfile ${BASEDIR}/etc/\$$basename.rpmnew || exit 1" >> $@
-	@echo "	else" >> $@
-	@echo "		cp \$$distfile ${BASEDIR}/etc/\$$basename || exit 1" >> $@
-	@echo "	fi" >> $@
-	@echo "	chown opennms:opennms ${BASEDIR}/etc/\$$basename || exit 1" >> $@
-	@echo "done" >> $@
-	@echo "" >> $@
-	@echo "/usr/sbin/svccfg import ${BASEDIR}/contrib/smf-manifest.xml || exit 1" >> $@
-	@echo "" >> $@
-	@echo "if [ -f ${BASEDIR}/etc/java.conf ]; then" >> $@
-	@echo "	/usr/bin/su ${INSTUSER} -c \"${BASEDIR}/bin/runjava -c\" || exit 1" >> $@
-	@echo "else" >> $@
-	@echo "	/usr/bin/su ${INSTUSER} -c \"${BASEDIR}/bin/runjava -s\" || exit 1" >> $@
-	@echo "fi" >> $@
-	@echo "" >> $@
-	@echo "/usr/bin/su ${INSTUSER} -c \"${BASEDIR}/bin/install -dis\" || exit 1" >> $@
-	@echo "" >> $@
-	@echo "/usr/sbin/svcadm enable opennms || exit 1" >> $@
+${DESTDIR}/install/preinstall: ${DESTDIR}/install install/preinstall
+	cp install/preinstall $@
 
-${DESTDIR}/install/preremove: ${DESTDIR}/install
-	rm -f $@
-	@echo "#!/bin/sh -" >> $@
-	@echo "" >> $@
-	@echo "/usr/sbin/svcadm disable -s opennms || exit 1" >> $@
-	@echo "" >> $@
-	@echo "rm -f ${BASEDIR}/etc/configured" >> $@
-	@echo "" >> $@
-	@echo "# Remove files that haven't changed from the distributed version" >> $@
-	@echo "for distfile in ${BASEDIR}/etc/.dist/*; do" >> $@
-	@echo "	basename=\`basename \$$distfile\`" >> $@
-	@echo "	if cmp -s \$$distfile ${BASEDIR}/etc/\$$basename; then" >> $@
-	@echo "		rm ${BASEDIR}/etc/\$$basename" >> $@
-	@echo "	fi" >> $@
-	@echo "done" >> $@
-	@echo "" >> $@
-	@echo "/usr/sbin/svccfg delete opennms" >> $@
+${DESTDIR}/install/postinstall: ${DESTDIR}/install install/postinstall
+	cp install/postinstall $@
+
+${DESTDIR}/install/preremove: ${DESTDIR}/install install/preremove
+	cp install/preremove $@
+
+${DESTDIR}/install/postremove: ${DESTDIR}/install install/postremove
+	cp install/postremove $@
 
 .package-installed.${SRCVERSION}: build clean.${DESTDIR} ${DESTDIR}${BASEDIR} \
-		${OTHERFILES} ${OPENNMSTGZ} # install-docs deejinstall
+		${OTHERFILES} ${OPENNMSTGZ}
 #	cd ${BUILDDIR} ; ${MAKE} prefix=${DESTDIR}${BASEDIR} \
 #		sysconfdir=${DESTDIR}${ETCDIR} \
 #		sbindir=${DESTDIR}${BASEDIR}/sbin \
@@ -277,75 +208,7 @@ ${DESTDIR}/install/preremove: ${DESTDIR}/install
 	mv `find ${DESTDIR}${BASEDIR}/etc/* -prune -type f` ${DESTDIR}${BASEDIR}/etc/.dist/.
 	touch $@
 
-deejinstall:
-	@echo "#!/bin/sh -" >> $@
-	@echo "" >> $@
-	@echo "basename=\"\`basename \$$0\`\"" >> $@
-	@echo "die() {" >> $@
-	@echo "        echo \"\$$basename: \$$*\" >&2" >> $@
-	@echo "        exit 1" >> $@
-	@echo "}" >> $@
-	@echo "" >> $@
-	@echo "usage=\"\$$basename [-o <owner>] [-g <group>] [-m <mode>] [-s] <source> <dest>\"" >> $@
-	@echo "" >> $@
-	@echo "strip=0" >> $@
-	@echo "" >> $@
-	@echo "while getopts o:g:m:s c" >> $@
-	@echo "do" >> $@
-	@echo "	case \$$c in" >> $@
-	@echo "		o)" >> $@
-	@echo "			owner=\"\$$OPTARG\"" >> $@
-	@echo "		;;" >> $@
-	@echo "" >> $@
-	@echo "		g)" >> $@
-	@echo "			group=\"\$$OPTARG\"" >> $@
-	@echo "		;;" >> $@
-	@echo "" >> $@
-	@echo "		m)" >> $@
-	@echo "			mode=\"\$$OPTARG\"" >> $@
-	@echo "		;;" >> $@
-	@echo "" >> $@
-	@echo "		s)" >> $@
-	@echo "			strip=1" >> $@
-	@echo "		;;" >> $@
-	@echo "" >> $@
-	@echo "		\\?)" >> $@
-	@echo "			die \"What up?\"" >> $@
-	@echo "		;;" >> $@
-	@echo "	esac" >> $@
-	@echo "done" >> $@
-	@echo "" >> $@
-	@echo "shift \`expr \$$OPTIND - 1\`" >> $@
-	@echo "" >> $@
-	@echo "if [ \$$# -ne 2 ]; then" >> $@
-	@echo "	die \"Usage: \$$usage\"" >> $@
-	@echo "fi" >> $@
-	@echo "" >> $@
-	@echo "source=\"\$$1\"; shift" >> $@
-	@echo "dest=\"\$$1\"; shift" >> $@
-	@echo "" >> $@
-	@echo "cp \"\$$source\" \"\$$dest\" || die \"Could not copy \$$source to \$$dest\"" >> $@
-	@echo "" >> $@
-	@echo "if [ \$$strip -ne 0 ]; then" >> $@
-	@echo "	strip \"\$$dest\" || die \"Could not strip \$$dest\"" >> $@
-	@echo "fi" >> $@
-	@echo "" >> $@
-	@echo "if [ \"\$$owner\"x != \"\"x ]; then" >> $@
-	@echo "	chown \"\$$owner\" \"\$$dest\"	# don't care if it fails" >> $@
-	@echo "fi" >> $@
-	@echo "" >> $@
-	@echo "if [ \"\$$group\"x != \"\"x ]; then" >> $@
-	@echo "	chgrp \"\$$group\" \"\$$dest\" # don't care if it fails" >> $@
-	@echo "fi" >> $@
-	@echo "" >> $@
-	@echo "if [ \"\$$mode\"x != \"\"x ]; then" >> $@
-	@echo "	chmod \"\$$mode\" \"\$$dest\" # don't care if it fails" >> $@
-	@echo "fi" >> $@
-	@chmod 755 $@
-
-
 # XXX it should be under BUILDDIR somewhere
-#${DESTDIR}${BASEDIR}/docs/COPYING: ${BUILDDIR}/COPYING
 ${DESTDIR}${BASEDIR}/docs/COPYING: ${DESTDIR}${BASEDIR}/docs ${TOPONMSDIR}/GPL
 	cp ${TOPONMSDIR}/GPL $@
 
@@ -357,12 +220,6 @@ ${DESTDIR}${BASEDIR}/contrib/smf-manifest.xml: ${DESTDIR}${BASEDIR}/contrib smf-
 
 ${DESTDIR}${BASEDIR}/contrib: ${DESTDIR}${BASEDIR}
 	mkdir $@
-
-${DESTDIR}/install/copyright: ${DESTDIR}/install
-	rm -f $@
-	@echo "This is free software; you can redistribute it and/or" >> $@
-	@echo "modify it under the terms of the GNU General Public" >> $@
-	@echo "License, see the file ${BASEDIR}/docs/COPYING." >> $@
 
 clean.${DESTDIR}:
 	rm -rf ${DESTDIR}
@@ -377,7 +234,7 @@ build: .configured.${SRCVERSION}
 clean:
 	rm -rf ${BUILDDIR} ${DESTDIR} .configured.${SRCVERSION} \
 		.untarred.${SRCVERSION} .package-installed.${SRCVERSION} \
-		deejinstall ${SPOOLDIR}/${PKGNAME} ${SRCVERSION}.pkg
+		${SPOOLDIR}/${PKGNAME} ${SRCVERSION}.pkg
 
 .untarred.${SRCVERSION}: ${OPENNMSTGZ}
 #	rm -rf ${BUILDDIR}
@@ -395,12 +252,6 @@ veryclean:
 	rm -rf ${BUILDDIR} ${DESTDIR} .configured.${SRCVERSION} \
 		.untarred.${SRCVERSION} .package-installed.${SRCVERSION} \
 		.revision ${SPOOLDIR}/${PKGNAME} ${SRCVERSION}.pkg
-
-
-install-docs: ${DESTDIR}${BASEDIR}/docs
-#	cd ${BUILDDIR} ; ls -1 [A-Z]* | egrep -v 'Makefile|ChangeLog.zoo' | \
-#		cpio -updm ${DESTDIR}${BASEDIR}/docs
-	true
 
 ${DESTDIR}${BASEDIR}/docs: ${DESTDIR}${BASEDIR}
 	mkdir -p ${DESTDIR}${BASEDIR}/docs 
