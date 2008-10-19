@@ -34,7 +34,7 @@
 all: package
 
 build:
-	( cd .. && ./build.sh clean && ./build.sh -Dopennms.home=${BASEDIR} install assembly:attached )
+	( cd .. && ./build.sh clean && ./build.sh -Dopennms.home=/opt/opennms install assembly:attached )
 
 package:
 	${MAKE} -f opennms.Makefile package
