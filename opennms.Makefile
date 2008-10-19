@@ -85,7 +85,8 @@ INSTALLFILES= ${DESTDIR}/install/pkginfo \
 		${DESTDIR}/install/depend \
 		${DESTDIR}/install/preinstall \
 		${DESTDIR}/install/postinstall \
-		${DESTDIR}/install/preremove
+		${DESTDIR}/install/preremove \
+		${DESTDIR}/install/checkinstall
 
 all: package
 
@@ -199,6 +200,16 @@ ${DESTDIR}/install/preinstall: ${DESTDIR}/install
 	@echo "		exit 1" >> $@
 	@echo "	fi" >> $@
 	@echo "fi" >> $@
+
+${DESTDIR}/install/checkinstall: ${DESTDIR}/install
+	rm -f $@
+	@echo "#!/bin/sh -" >> $@
+	@echo "" >> $@
+	@echo "if [ x"\$$PKG_INSTALL_ROOT" != x"" ]; then" >> $@
+	@echo "	echo \"Error: this package must not be installed with an alternate root path.\"" >> $@
+	@echo "	exit 1" >> $@
+	@echo "fi" >> $@
+	@echo "" >> $@
 
 ${DESTDIR}/install/postinstall: ${DESTDIR}/install
 	rm -f $@
