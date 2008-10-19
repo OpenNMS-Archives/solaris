@@ -20,7 +20,16 @@ if [ ! -f $configured ]; then
 fi
 
 if [ "$1" = "start" ]; then
-    exec $service -v start
+    $service -v start
+    ret=$?
+
+    if [ $ret -eq 6 ]; then
+        echo "Error: OpenNMS not properly configured.  See previous error messages for details." \
+            "  See opennms(1M)."
+        exit $SMF_EXIT_ERR_CONFIG
+    else
+        exit $ret
+    fi
 elif [ "$1" = "stop" ]; then
     $service -v stop
     ret=$?
