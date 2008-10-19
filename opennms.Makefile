@@ -206,7 +206,17 @@ ${DESTDIR}/install/postinstall: ${DESTDIR}/install
 	@echo "" >> $@
 	@echo "rm -f ${BASEDIR}/etc/configured" >> $@
 	@echo "" >> $@
-	@echo "/usr/sbin/svccfg import ${BASEDIR}/contrib/smf-manifest.xml" >> $@
+	@echo "for distfile in ${BASEDIR}/etc/.dist/*; do" >> $@
+	@echo "	basename=\`basename \$$distfile\`" >> $@
+	@echo "	if [ -f ${BASEDIR}/etc/\$$basename ]; then" >> $@
+	@echo "		cp \$$distfile ${BASEDIR}/etc/\$$basename.rpmnew || exit 1" >> $@
+	@echo "	else" >> $@
+	@echo "		cp \$$distfile ${BASEDIR}/etc/\$$basename || exit 1" >> $@
+	@echo "	fi" >> $@
+	@echo "	chown opennms:opennms ${BASEDIR}/etc/\$$basename || exit 1" >> $@
+	@echo "done" >> $@
+	@echo "" >> $@
+	@echo "/usr/sbin/svccfg import ${BASEDIR}/contrib/smf-manifest.xml || exit 1" >> $@
 	@echo "" >> $@
 	@echo "if [ -f ${BASEDIR}/etc/java.conf ]; then" >> $@
 	@echo "	/usr/bin/su ${INSTUSER} -c \"${BASEDIR}/bin/runjava -c\" || exit 1" >> $@
@@ -216,7 +226,7 @@ ${DESTDIR}/install/postinstall: ${DESTDIR}/install
 	@echo "" >> $@
 	@echo "/usr/bin/su ${INSTUSER} -c \"${BASEDIR}/bin/install -dis\" || exit 1" >> $@
 	@echo "" >> $@
-	@echo "/usr/sbin/svcadm enable opennms" >> $@
+	@echo "/usr/sbin/svcadm enable opennms || exit 1" >> $@
 
 ${DESTDIR}/install/preremove: ${DESTDIR}/install
 	rm -f $@
@@ -225,6 +235,14 @@ ${DESTDIR}/install/preremove: ${DESTDIR}/install
 	@echo "/usr/sbin/svcadm disable -s opennms || exit 1" >> $@
 	@echo "" >> $@
 	@echo "rm -f ${BASEDIR}/etc/configured" >> $@
+	@echo "" >> $@
+	@echo "# Remove files that haven't changed from the distributed version" >> $@
+	@echo "for distfile in ${BASEDIR}/etc/.dist/*; do" >> $@
+	@echo "	basename=\`basename \$$distfile\`" >> $@
+	@echo "	if cmp -s \$$distfile ${BASEDIR}/etc/\$$basename; then" >> $@
+	@echo "		rm ${BASEDIR}/etc/\$$basename" >> $@
+	@echo "	fi" >> $@
+	@echo "done" >> $@
 	@echo "" >> $@
 	@echo "/usr/sbin/svccfg delete opennms" >> $@
 
@@ -244,6 +262,8 @@ ${DESTDIR}/install/preremove: ${DESTDIR}/install
 	rm -rf ${DESTDIR}${BASEDIR}/webapps
 	/usr/bin/echo "/^RUNAS=/\\ns/.*/RUNAS=\\\"${INSTUSER}\\\"/\\nw\\nq" | \
 		ed ${DESTDIR}${BASEDIR}/bin/opennms
+	mkdir ${DESTDIR}${BASEDIR}/etc/.dist
+	mv `find ${DESTDIR}${BASEDIR}/etc/* -prune -type f` ${DESTDIR}${BASEDIR}/etc/.dist/.
 	touch $@
 
 deejinstall:
