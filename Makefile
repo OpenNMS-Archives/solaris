@@ -31,7 +31,7 @@
 #	XXX fill this in XXX
 #
 
-all: package
+all: build package
 
 build:
 	( cd .. && ./build.sh clean && ./build.sh -Dopennms.home=/opt/opennms install assembly:attached )
